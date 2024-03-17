@@ -53,5 +53,45 @@ To get a sense of the data we're working with, we’ll take a look at the first 
 SELECT * FROM db_combined
 LIMIT 5;
 ```
+![image](https://github.com/MaxS185/Digital_Marketing_Strategy_Optimisation_SQL/assets/48988778/29f0a306-d88f-4a9d-94ba-fb80ba15e078)
 
+**Column Overview:** The dataset contains rows with identifiers like ```fullvisitorid``` and ```visitid```, along with date of visits, and details of traffic sources in the ```channelGrouping```, ```source```, and ```medium``` columns. It offers insights into user engagement through metrics such as visits, pageviews, time on website, and bounces. Additionally, it includes e-commerce data like transactions and revenue, user-specific information (operating system, mobile device usage, device type), and geographical data (region, country, continent, subcontinent). Some fields, like ```adcontent```, are missing data.
 
+**Row Overview:** At first glance, it seems that each row represents a single session on the website. The ```visitid``` column appears to be a unique identifier for each session, and therefore, needs closer investigation. 
+First, we’ll examine the ```fullvisitorid``` and ```visitid``` columns for null values. Ensuring there are no NULL values in this key column is essential for the integrity of our dataset.
+To get a sense of the data we're working with, we’ll take a look at the first few rows of the table. This allows us to see what columns are available and the kind of data each column contains.
+``` 
+SELECT 
+    COUNT(*) as total_rows,
+    COUNT(fullvisitorid) as total_fullvisitorID,
+    COUNT(visitid) as total_visitID
+FROM db_combined;
+```
+![image](https://github.com/MaxS185/Digital_Marketing_Strategy_Optimisation_SQL/assets/48988778/cf0e69e9-9289-4ed9-88be-4f13bee5b103)
+
+It appears that there are no NULL values in the ```visitid``` and ```fullvisitorid``` column, indicating that each session captured in the data has been assigned an identifier. The absence of NULL values in this key columns is a positive sign for data integrity.
+Next, we'll check for duplicate values in ```visitid```.
+```
+SELECT 
+	visitid AS count_of_rows,
+	COUNT(visitid) AS count_of_visitID
+FROM db_combined
+GROUP BY 1
+HAVING count_of_visitID > 1; 
+
+```
+<img width="855" alt="4 duplicates1" src="https://github.com/MaxS185/Digital_Marketing_Strategy_Optimisation_SQL/assets/48988778/ec0ba82a-8c10-40d2-a057-66fcd671355c">
+
+The ```visitid``` column in the dataset, while seemingly unique, does not serve as a unique identifier for each session. This is because ```visitid``` represents the timestamp when a visit or session begins. Since multiple visitors can start their sessions at the same exact time, ```visitid``` alone is not sufficient to uniquely identify each session.
+
+To create a unique identifier for each session, we need to combine ```visitid``` with another column, ```fullvisitorid```. 
+The ```fullvisitorid``` column uniquely identifies each visitor to the website. By concatenating ```fullvisitorid``` and ```visitid```, we can create a new identifier that is unique for each session. This new identifier will ensure that each session is distinctly recognized, even if multiple sessions start at the same time.
+```
+SELECT
+    CONCAT(fullvisitorid,"-",visitid) AS unique_identifier_id,
+    COUNT(*) AS total_rows
+FROM db_combined
+GROUP BY 1
+HAVING count(*)>1;
+```
+![image](https://github.com/MaxS185/Digital_Marketing_Strategy_Optimisation_SQL/assets/48988778/30220491-1ca6-419d-9d6d-fb2ddf21f9ce)
