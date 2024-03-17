@@ -28,4 +28,30 @@ I then conducted advanced analyses using advanced string, date and window functi
 Additionally, I analyzed various web traffic sources to identify the most effective channels for driving sales and conversions, turning data into actionable business intelligence.
 
 ### Set Up & Datasets
-In MySQL Workbench, I have created a new database called ``` gms_project ```. This database will be used to store tables and data as part of our project.
+In MySQL Workbench, I have created a new database called ``` gms_project ```, and it will be used to store tables and data as part of our project.
+``` 
+create database gms_project;
+```
+First task is to create a unified view of the data across the three months. The combined dataset will serve as the base of our analysis.
+Then We will "use" the the gsm_project database, since it contains all we need, and it will allow us to refer only to the table needed.
+``` 
+CREATE TABLE gms_project.db_combined as (
+    SELECT * FROM gms_project.data_oct
+    UNION ALL
+    SELECT * FROM gms_project.data_nov
+    UNION ALL
+    SELECT * FROM gms_project.data_dec
+);
+
+USE gms_project;
+```
+![image](https://github.com/MaxS185/Digital_Marketing_Strategy_Optimisation_SQL/assets/48988778/bd7ff61b-6933-4a4d-a19e-e8fbfd4d5c95)
+
+### Data Exploration
+To get a sense of the data we're working with, we’ll take a look at the first few rows of the table. This allows us to see what columns are available and the kind of data each column contains.
+``` 
+SELECT * FROM db_combined
+LIMIT 5;
+```
+
+
