@@ -115,3 +115,43 @@ In our analysis, we acknowledge this scenario and have decided to treat these tw
 
 ### Insights
 ##### Website Engagement by Day
+Now that we have a basic understanding of our dataset, we're ready to delve into a more detailed analysis. First, we'll explore daily web traffic to gain insights into overall website performance. This initial step will reveal key traffic patterns and trends in visitor behavior.
+
+*Note: For simplicity, our analysis will use UTC time for all timestamps, avoiding the complexities of time zone conversions and Daylight Saving Time adjustments.*
+```
+SELECT 
+	date,
+	COUNT(DISTINCT(unique_session_id)) AS sessions
+	FROM (
+		SELECT 
+		DATE(FROM_UNIXTIME(date)) AS date,
+		CONCAT(fullvisitorid, '-', visitid) AS unique_session_id
+		FROM db_combined
+		GROUP BY 1,2
+		) TABLE1
+GROUP BY 1
+ORDER BY 1;
+```
+![image](https://github.com/MaxS185/Digital_Marketing_Strategy_Optimisation_SQL/assets/48988778/4999e816-e933-488d-b844-68022bd92462)
+![6 engagbydaychart](https://github.com/MaxS185/Digital_Marketing_Strategy_Optimisation_SQL/assets/48988778/95b80625-0ed9-456f-bb00-5df33154b6e3)
+
+We observe an uptick in web traffic as we approach the holiday season in December. 
+In addition, web traffic consistently peaks during weekdays and tapers off during weekends. 
+To better illustrate this trend, we'll extract the name of the day from the visit date.
+```
+SELECT 
+	dayname(date) AS weekday,
+	COUNT(DISTINCT(unique_session_id)) AS sessions
+FROM (
+	SELECT 
+		DATE(FROM_UNIXTIME(date)) AS date,
+		CONCAT(fullvisitorid, '-', visitid) AS unique_session_id
+	FROM db_combined
+	GROUP BY 1,2
+	) TABLE1
+GROUP BY 1
+ORDER BY 2 DESC;
+```
+![image](https://github.com/MaxS185/Digital_Marketing_Strategy_Optimisation_SQL/assets/48988778/19b85315-5a66-469f-b13c-d7bff9f1df59)
+
+##### Website Engagement & Monetization by Device
