@@ -95,3 +95,23 @@ GROUP BY 1
 HAVING count(*)>1;
 ```
 ![image](https://github.com/MaxS185/Digital_Marketing_Strategy_Optimisation_SQL/assets/48988778/30220491-1ca6-419d-9d6d-fb2ddf21f9ce)
+
+From the analysis of the data, it appears that we still have two duplicate entries. This is likely due to how sessions are tracked around midnight. In many web analytics systems, a visitor's session is reset at midnight. This means that if a visitor is active on the website across midnight, their activity before and after midnight is counted as two separate sessions. However, if the visitid is based on the start time of the session, then the visitor will have the same visitid for both sessions. When we concatenate this visitid with the fullvisitorid, the resulting unique_session_id will be the same for both sessions. Therefore, despite being on the website across two different sessions (before and after midnight), the visitor appears in our data with the same unique_session_id for both sessions. Let’s examine one example.
+
+*Note: Our dataset timestamps are in UTC (Coordinated Universal Time), the main time standard used globally, which remains constant year-round. As our analysis focuses on US data, we'll convert these timestamps to PDT (Pacific Daylight Time) or PST (Pacific Standard Time).*
+```
+SELECT
+	CONCAT(fullvisitorid, '-', visitid) AS unique_session_id,
+	FROM_UNIXTIME(date) + INTERVAL -9 HOUR AS date,
+	COUNT(*) as total_rows
+FROM db_combined
+GROUP BY 1,2
+HAVING unique_session_id IN ("0368176022600320212-1477983528", "4961200072408009421-1480578925")
+LIMIT 5;
+```
+![image](https://github.com/MaxS185/Digital_Marketing_Strategy_Optimisation_SQL/assets/48988778/a9eeca45-29e9-4bb0-b41b-81d11322ca39)
+In our analysis, we acknowledge this scenario and have decided to treat these two sessions as a single continuous session, maintaining the same ```unique_session_id```. This approach aligns with our analytical objectives and simplifies our dataset. Therefore, we won't modify the session tracking mechanism to separate these instances into distinct sessions.
+
+
+### Insights
+##### Website Engagement by Day
