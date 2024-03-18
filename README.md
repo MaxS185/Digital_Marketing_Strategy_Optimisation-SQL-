@@ -58,7 +58,7 @@ LIMIT 5;
 **Column Overview:** The dataset contains rows with identifiers like ```fullvisitorid``` and ```visitid```, along with date of visits, and details of traffic sources in the ```channelGrouping```, ```source```, and ```medium``` columns. It offers insights into user engagement through metrics such as visits, pageviews, time on website, and bounces. Additionally, it includes e-commerce data like transactions and revenue, user-specific information (operating system, mobile device usage, device type), and geographical data (region, country, continent, subcontinent). Some fields, like ```adcontent```, are missing data.
 
 **Row Overview:** At first glance, it seems that each row represents a single session on the website. The ```visitid``` column appears to be a unique identifier for each session, and therefore, needs closer investigation. 
-First, we’ll examine the ```fullvisitorid``` and ```visitid``` columns for null values. Ensuring there are no NULL values in this key column is essential for the integrity of our dataset.
+First, we’ll examine the ```fullvisitorid``` and ```visitid``` columns for ```NULL``` values. Ensuring there are no ```NULL``` values in this key column is essential for the integrity of our dataset.
 To get a sense of the data we're working with, we’ll take a look at the first few rows of the table. This allows us to see what columns are available and the kind of data each column contains.
 ``` 
 SELECT 
@@ -69,7 +69,7 @@ FROM db_combined;
 ```
 ![image](https://github.com/MaxS185/Digital_Marketing_Strategy_Optimisation_SQL/assets/48988778/cf0e69e9-9289-4ed9-88be-4f13bee5b103)
 
-It appears that there are no NULL values in the ```visitid``` and ```fullvisitorid``` column, indicating that each session captured in the data has been assigned an identifier. The absence of NULL values in this key columns is a positive sign for data integrity.
+It appears that there are no ```NULL``` values in the ```visitid``` and ```fullvisitorid``` column, indicating that each session captured in the data has been assigned an identifier. The absence of ```NULL``` values in this key columns is a positive sign for data integrity.
 Next, we'll check for duplicate values in ```visitid```.
 ```
 SELECT 
@@ -155,3 +155,145 @@ ORDER BY 2 DESC;
 ![image](https://github.com/MaxS185/Digital_Marketing_Strategy_Optimisation_SQL/assets/48988778/19b85315-5a66-469f-b13c-d7bff9f1df59)
 
 ##### Website Engagement & Monetization by Device
+We can further refine our analysis by examining the data by device type, which will reveal variations in conversion rates and visits across desktops, tablets, and smartphones. This device-specific insight is key for optimizing website design and marketing for each device category.
+
+*Note: in the dataset, revenue is expressed in millions. To interpret these figures accurately, we’ll divide them by 10^6 to get the original dollar amount.*
+```
+SELECT 
+	deviceCategory,
+	COUNT(DISTINCT unique_session_id) AS sessions,
+	((COUNT(DISTINCT unique_session_id)/SUM(COUNT(DISTINCT unique_session_id)) OVER ())*100) AS session_percentage,
+	SUM(transactionrevenue)/1e6 AS revenue,
+	((SUM(transactionrevenue)/SUM(SUM(transactionrevenue)) OVER ())*100) AS revenue_percentage
+FROM (
+	SELECT 
+		deviceCategory,
+		transactionrevenue,
+		CONCAT(fullvisitorid, '-', visitid) AS unique_session_id
+	FROM db_combined
+	) TABLE1
+GROUP BY 1;
+```
+<img width="854" alt="8 engagbydevice" src="https://github.com/MaxS185/Digital_Marketing_Strategy_Optimisation_SQL/assets/48988778/d886e4ae-e1f2-41fc-a908-f258f20d226d">
+
+While ~25% of sessions originate from mobile devices, only 5% of revenue is generated through them. This significant discrepancy suggests a need to optimize the mobile shopping experience. 
+Marketing strategies should focus on enhancing mobile usability, streamlining the checkout process, and tailoring mobile-specific promotions. Considering the significant number of users who shop on their mobile devices during commutes or workday breaks, a seamless mobile experience on our e-commerce platform is crucial. To further tap into this growing user base, Google might also consider for example developing a dedicated mobile app, which could substantially increase revenue from mobile users.
+
+##### Website Engagement & Monetization by Region
+We can analyze these numbers further to determine if there are regional differences affecting mobile device usage and revenue generation. This deeper dive will help us understand whether certain regions have higher mobile engagement or sales, guiding targeted marketing strategies and region-specific optimizations.
+
+```
+SELECT 
+	deviceCategory,
+	region,
+	COUNT(DISTINCT unique_session_id) AS sessions,
+	ROUND(((COUNT(DISTINCT unique_session_id)/SUM(COUNT(DISTINCT unique_session_id)) OVER ())*100),2) AS session_percentage,
+	SUM(transactionrevenue)/1e6 AS revenue,
+	ROUND(((SUM(transactionrevenue)/SUM(SUM(transactionrevenue)) OVER ())*100),2) AS revenue_percentage
+FROM (
+	SELECT 
+		deviceCategory,
+		CASE
+			WHEN region ='' OR region IS NULL THEN 'Unknown'
+			ELSE region
+			END AS region,
+		transactionrevenue,
+		CONCAT(fullvisitorid, '-', visitid) AS unique_session_id
+	FROM db_combined
+	WHERE deviceCategory = 'mobile'
+	GROUP BY 1,2,3,4
+	) TABLE1
+GROUP BY 1,2
+ORDER BY 3 DESC;
+```
+<img width="854" alt="9 engagbyregion" src="https://github.com/MaxS185/Digital_Marketing_Strategy_Optimisation_SQL/assets/48988778/f4e60649-fe06-4edf-8cb5-4f65bd39515d">
+
+The data shows that while only 1% of mobile sessions are from Washington, they contribute to 11% of revenue. Similarly, Illinois sees 3% of sessions but accounts for 9% of revenue. This suggests an untapped opportunity, as these regions have higher conversion rates or transaction values despite fewer sessions. Focusing marketing efforts on these regions could potentially increase revenue, leveraging their higher purchasing effectiveness. Potential approaches could include targeted marketing campaigns, localized promotions, or even exploring the reasons behind the higher conversion rates, such as product preferences or purchasing power.
+
+One limitation in our analysis arises from the fact that some mobile sessions in the dataset are not mapped to any specific region. This means that for a subset of mobile sessions, the ```region``` field is either left blank or marked as ```NULL```, indicating that the geographic location of these users is unknown or not recorded. Addressing this issue with the Data Engineering team could be vital for ensuring more accurate and comprehensive data for future analyses.
+
+##### Website Retention
+Next, we’ll examine website retention, specifically focusing on whether users are new or returning. This will provide insights into user loyalty and the effectiveness of strategies in encouraging repeat visits.
+```
+SELECT 
+	CASE
+		WHEN newvisits = 1 THEN "New Visitor"
+		ELSE "Returnig Visitor"
+		END AS visitor_type,
+	COUNT(DISTINCT(fullvisitorid)) as visitors,
+	ROUND(((SUM(fullvisitorid)/SUM(SUM(fullvisitorid)) OVER ())*100),2) AS visitors_percentage
+FROM db_combined
+GROUP BY 1;
+```
+<img width="854" alt="10 website_retention" src="https://github.com/MaxS185/Digital_Marketing_Strategy_Optimisation_SQL/assets/48988778/e45d7138-c9c5-4b8e-a551-472903da2a8a">
+
+Interestingly, about 80% of users visit the website only once. Typically, having around 50-70% new users and 30-50% returning users is considered a good balance. 
+This statistic suggests a need for better incentives or value propositions to encourage repeat visits, presenting a major opportunity for enhanced retention strategies such as personalized marketing, loyalty programs, or targeted retargeting campaigns. 
+In contrast, the substantial influx of new visitors reflects successful marketing efforts in brand awareness, effectively attracting people to the site initially. Key factors like a user-friendly interface, engaging content, and smooth navigation play a crucial role here.
+
+##### Website Acquisition
+Building on this analysis, the next logical step is to calculate the bounce rate. This measure is key as it indicates the proportion of visitors who exit the site after viewing only one page and is often used to evaluate the effectiveness of acquisition strategies. A high bounce rate can indicate that the landing page or the initial content isn't meeting the expectations of visitors or isn't engaging enough to encourage further exploration of the site or purchases. Understanding the bounce rate offers valuable insights into the site's initial engagement success with its audience.
+```
+SELECT 
+	COUNT(DISTINCT(unique_session_id)) AS sessions,
+	SUM(bounces) AS bounces,
+	(SUM(bounces)/COUNT(DISTINCT(unique_session_id)))*100 AS bounce_rate
+FROM (
+	SELECT 
+		bounces,
+		CONCAT(fullvisitorid, '-', visitid) AS unique_session_id
+		FROM db_combined
+	) TABLE1
+ORDER BY 1 DESC;
+```
+<img width="854" alt="11 websiteaquisition_bounces" src="https://github.com/MaxS185/Digital_Marketing_Strategy_Optimisation_SQL/assets/48988778/5e4d0202-d5b3-43c1-8322-435c798993a2">
+
+##### Website Acquisition by Channel
+Moving forward, we'll delve into the bounce rate by channel to gain a clearer picture of the effectiveness of various marketing strategies. This will also shed light on user engagement across diverse traffic sources, providing valuable insights for optimizing our outreach efforts.
+```
+SELECT 
+	channelGrouping,
+	COUNT(DISTINCT(unique_session_id)) AS sessions,
+	SUM(bounces) AS bounces,
+	(SUM(bounces)/COUNT(DISTINCT(unique_session_id)))*100 AS bounce_rate
+FROM (
+	SELECT 
+		channelGrouping,
+		bounces,
+		CONCAT(fullvisitorid, '-', visitid) AS unique_session_id
+		FROM db_combined
+	) TABLE1
+GROUP BY 1
+ORDER BY 2 DESC;
+```
+<img width="854" alt="12 webaquisition_channel" src="https://github.com/MaxS185/Digital_Marketing_Strategy_Optimisation_SQL/assets/48988778/95d9d036-eaff-493b-9ac5-42a3e06ea87f">
+
+##### Website Acquisition & Monetization by Channel
+Building on our analysis of visits and bounce rates by channel, we'll next include key metrics like time on site, revenue, and conversion rate. 
+This broader evaluation will give us a fuller view of each channel's performance, encompassing not only traffic volume but also user engagement quality, revenue generation efficiency, and overall conversion impact.
+```
+SELECT 
+	channelGrouping,
+	COUNT(DISTINCT(unique_session_id)) AS sessions,
+	SUM(bounces) AS bounces,
+	(SUM(bounces)/COUNT(DISTINCT(unique_session_id)))*100 AS bounce_rate,
+	SUM(pageviews)/COUNT(DISTINCT(unique_session_id)) AS avg_pageonsite,
+	SUM(timeonsite)/COUNT(DISTINCT(unique_session_id)) AS avg_timeonsite,
+	SUM(CASE WHEN transactions >= 1 THEN 1 ELSE 0 END) AS conversions,
+	SUM(CASE WHEN transactions >= 1 THEN 1 ELSE 0 END)/COUNT(DISTINCT(unique_session_id))*100 AS conversion_rate,
+	SUM(transactionrevenue)/1e6 AS revenue
+FROM (
+	SELECT 
+		channelGrouping,
+		bounces, 
+		pageviews, 
+		timeonsite, 
+		transactions, 
+		transactionrevenue,
+		CONCAT(fullvisitorid, '-', visitid) AS unique_session_id
+	FROM db_combined
+) TABLE1
+GROUP BY 1
+ORDER BY 2 DESC;
+```
+<img width="856" alt="13 webaquisitionmonetization_channel" src="https://github.com/MaxS185/Digital_Marketing_Strategy_Optimisation_SQL/assets/48988778/3a08b5ba-6e0e-4fa1-8239-d8e6b6def9cb">
